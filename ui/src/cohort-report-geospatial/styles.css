@@ -4,6 +4,7 @@ button {
 
 .atlas-cohort-report {
     display: flex;
+    padding: 1rem;
 }
 
 .atlas-cohort-report__map-container {
