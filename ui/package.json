@@ -1,0 +1,22 @@
+{
+  "name": "atlas-geospatial-plugin",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build/optimize.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Pavel Grafkin",
+  "license": "ISC",
+  "dependencies": {
+    "@ohdsi/ui-toolbox": "^1.1.0",
+    "leaflet": "^1.5.1",
+    "numeral": "^2.0.6"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.4.4",
+    "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
+    "@babel/preset-env": "^7.4.5"
+  }
+}
