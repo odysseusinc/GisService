@@ -5,6 +5,7 @@ library(rgeos) # required for "gBuffer"
 library(geojson) # required for "as.geojson"
 # https://vita.had.co.nz/papers/density-estimation.pdf
 library(KernSmooth)
+library(SqlRender)
 
 # https://github.com/tidyverse/ggplot2/issues/2534
 # https://stackoverflow.com/questions/14379828/how-does-one-turn-contour-lines-into-filled-contours
@@ -119,18 +120,33 @@ dbms <- Sys.getenv("DBMS_TYPE")
 connectionString <- Sys.getenv("CONNECTION_STRING")
 user <- Sys.getenv("DBMS_USERNAME")
 pwd <- Sys.getenv("DBMS_PASSWORD")
+cdmSchema <- Sys.getenv("DBMS_SCHEMA")
+resultSchema <- Sys.getenv("RESULT_SCHEMA")
 
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms=dbms, 
+  dbms=dbms,
   connectionString=connectionString,
   user=user,
   password=pwd
 )
+
+sql <- "
+    SELECT longitude, latitude
+    FROM @resultSchema.cohort c
+        JOIN @cdmSchema.location_history lh
+          ON c.subject_id = lh.entity_id AND lh.domain_id = 'PERSON'
+            AND c.cohort_start_date <= isNull(lh.end_date, DATEFROMPARTS(2099, 12, 31))
+            AND c.cohort_end_date >= lh.start_date
+        JOIN @cdmSchema.location l
+          ON lh.location_id = l.location_id
+    WHERE c.cohort_definition_id = {{cohortId}}
+    AND {{westLongitude}} <= longitude AND longitude <= {{eastLongitude}} AND {{northLatitude}} >= latitude AND latitude >= {{southLatitude}}"
+
+sql <- SqlRender::render(sql, resultSchema = resultSchema, cdmSchema = cdmSchema)
+sql <- SqlRender::translate(sql, connectionDetails$dbms)
+
 con <- DatabaseConnector::connect(connectionDetails)
-res <- DatabaseConnector::lowLevelQuerySql(
-    con,
-    "SELECT * FROM results.test_geo_p2 WHERE {{westLongitude}} <= lon AND lon <= {{eastLongitude}} AND {{northLatitude}} >= lat AND lat >= {{southLatitude}}"
-)
+res <- DatabaseConnector::lowLevelQuerySql(con, sql)
 disconnect(con)
 
 # fit <- kde2d(res$lon, res$lat, h = 0.015, n = 100)

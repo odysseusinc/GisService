@@ -20,17 +20,24 @@ define([
 		}
 
 		loadCohortBounds() {
-			// TODO after test data is available
+			return httpQuery(this.gisServiceUrl + `/cohort/${this.cohortId}/bounds/${this.sourceKey}`);
 		}
 
-		refresh() {
-			const center = [40.71, -74.0]; // TODO: determine based on cohortId & sourceKey
-			const zoom = 11; // TODO: determine based on cohortId & sourceKey
-			if (this.mapInitiated) {
-				this.map.setView(center, zoom);
-			} else {
-				this.initiateMap(this.mapContainerEl, center, zoom);
+		async refresh() {
+			const bounds = await this.loadCohortBounds();
+			if (!this.mapInitiated) {
+				this.initiateMap(this.mapContainerEl);
 			}
+			this.map.fitBounds(
+				[
+					// <LatLng> southWest, <LatLng> northEast
+					[bounds.southLatitude, bounds.westLongitude],
+					[bounds.northLatitude, bounds.eastLongitude],
+				],
+				{
+					padding: [50, 50]
+				}
+			);
 		}
 
 		getDensityUrl(cohortId, sourceKey, bounds) {
@@ -41,7 +48,7 @@ define([
 			return addQueryParams(this.gisServiceUrl + `/cohort/${cohortId}/clusters/${sourceKey}`, bounds);
 		}
 
-		initiateMap(containerEl, center, zoom) {
+		initiateMap(containerEl) {
 			this.map = L.map(containerEl);
 
 			this.osmLayer = L.tileLayer(this.tilesServerUrl + '/{z}/{x}/{y}.png', {
@@ -49,7 +56,6 @@ define([
 				maxZoom: 18,
 			});
 
-			this.map.setView(center, zoom);
 			this.map.addLayer(this.osmLayer);
 
 			this.map.on('moveend', () => {
@@ -93,7 +99,7 @@ define([
 				fillColor: this.getDensityColor(parseFloat(feature.properties.level)),
 				weight: 2,
 				opacity: 1,
-				color: 'white',
+				color: 'red',
 				dashArray: '3',
 				fillOpacity: 0.5,
 

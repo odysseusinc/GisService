@@ -35,7 +35,7 @@ public class PersonService {
         String sql;
         try (InputStream is = ClassLoader.class.getResourceAsStream(GET_PERSON_BOUNDS_SQL_PATH)) {
             sql = IOUtils.toString(is);
-            sql = SqlRender.renderSql(sql, new String[]{"personId"}, new String[]{personId.toString()});
+            sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "personId"}, new String[]{source.getCdmSchema(), personId.toString()});
             sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
         }
 

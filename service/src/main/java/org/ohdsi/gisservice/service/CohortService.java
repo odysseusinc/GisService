@@ -41,6 +41,8 @@ public class CohortService {
     private static final String CALCULATE_CLUSTERS_R_PATH = "/cluster/calculateClusters.R";
     private static final String CALCULATE_CLUSTERS_RESULT_FILE = "clusters.json";
 
+    private static final String COHORT_ID_PARAM = "cohortId";
+
     private final ExecutionEngineClient executionEngineClient;
     private final SourceService sourceService;
     private final ObjectMapper objectMapper;
@@ -62,7 +64,7 @@ public class CohortService {
         String sql;
         try (InputStream is = ClassLoader.class.getResourceAsStream(GET_COHORT_BOUNDS_SQL_PATH)) {
             sql = IOUtils.toString(is);
-            sql = SqlRender.renderSql(sql, new String[]{"cohortId"}, new String[]{cohortId.toString()});
+            sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "resultSchema", "cohortId"}, new String[]{source.getCdmSchema(), source.getResultSchema(), cohortId.toString()});
             sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
         }
 
@@ -81,22 +83,23 @@ public class CohortService {
     @PreAuthorize("hasPermission(#cohortId, 'cohortdefinition', 'get') && hasPermission(#dataSourceKey, 'source', 'access')")
     public JsonNode getDensityMap(Integer cohortId, String dataSourceKey, GeoBoundingBox geoBoundingBox) throws IOException {
 
-        return runGisAnalysis(dataSourceKey, geoBoundingBox, CALCULATE_CONTOURS_R_PATH, CALCULATE_CONTOURS_RESULT_FILE);
+        return runGisAnalysis(cohortId, dataSourceKey, geoBoundingBox, CALCULATE_CONTOURS_R_PATH, CALCULATE_CONTOURS_RESULT_FILE);
     }
 
     @PreAuthorize("hasPermission(#cohortId, 'cohortdefinition', 'get') && hasPermission(#dataSourceKey, 'source', 'access')")
     public JsonNode getClusters(Integer cohortId, String dataSourceKey, GeoBoundingBox geoBoundingBox) throws IOException {
 
-        return runGisAnalysis(dataSourceKey, geoBoundingBox, CALCULATE_CLUSTERS_R_PATH, CALCULATE_CLUSTERS_RESULT_FILE);
+        return runGisAnalysis(cohortId, dataSourceKey, geoBoundingBox, CALCULATE_CLUSTERS_R_PATH, CALCULATE_CLUSTERS_RESULT_FILE);
     }
 
-    private JsonNode runGisAnalysis(String dataSourceKey, GeoBoundingBox geoBoundingBox, String scriptPath, String resultFilename) throws IOException {
+    private JsonNode runGisAnalysis(Integer cohortId, String dataSourceKey, GeoBoundingBox geoBoundingBox, String scriptPath, String resultFilename) throws IOException {
 
         String scriptFn = new File(scriptPath).getName();
 
         DataSourceUnsecuredDTO dataSourceDTO = sourceService.getDataSourceDTO(dataSourceKey);
 
         Map<String, Object> params = conversionService.convert(geoBoundingBox, Map.class);
+        params.put(COHORT_ID_PARAM, cohortId);
         String script = TemplateUtils.loadTemplate(scriptPath).apply(params);
 
         var analysisRequest = buildRequest(dataSourceDTO, scriptFn);
