@@ -82,6 +82,7 @@ define([
 		}
 
 		getDensityColor(d) {
+			// TODO: not correct numbers
 			return d >= 10000 ? '#800026' :
 				d >= 1000 ? '#BD0026' :
 					d >= 100 ? '#E31A1C' :
