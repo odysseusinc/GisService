@@ -18,6 +18,7 @@
     <properties>
         <java.version>1.8</java.version>
         <feign.version>10.2.3</feign.version>
+        <arachne.version>1.15.0-SNAPSHOT</arachne.version>
     </properties>
 
     <dependencyManagement>
@@ -100,12 +101,12 @@
         <dependency>
             <groupId>com.odysseusinc.arachne</groupId>
             <artifactId>execution-engine-commons</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>${arachne.version}</version>
         </dependency>
         <dependency>
             <groupId>com.odysseusinc.arachne</groupId>
             <artifactId>arachne-common-utils</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>${arachne.version}</version>
         </dependency>
         <dependency>
             <groupId>org.ohdsi.sql</groupId>

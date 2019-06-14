@@ -4,15 +4,12 @@ define([
 	'./CohortMap.js',
 	'text!./template.html',
 	'text!./styles.css',
-	'text!../../node_modules/leaflet/dist/leaflet.css',
-	'../../node_modules/leaflet/dist/leaflet.js',
 ], (
 	config,
 	BaseMapWidget,
 	CohortMap,
 	componentTemplate,
 	componentStyles,
-	leafletStyles
 ) => {
 	const TYPE = 'atlas-cohort-report';
 	const NAME = `${TYPE}-geospatial`;
@@ -24,7 +21,6 @@ define([
 		const MAP_CONTAINER_ID = '#map';
 		const LOAD_DENSITY_BTN_ID = '#loadDensity';
 		const LOAD_CLUSTERS_BTN_ID = '#loadClusters';
-		const LOADING_PANEL_ID = '#loadingPanel';
 
 		CohortGeospatialReport = class extends BaseMapWidget {
 			static TYPE = TYPE;
@@ -44,6 +40,14 @@ define([
 				return [super.observedAttributes, COHORT_ID_ATTR];
 			}
 
+			get componentTemplate() {
+				return componentTemplate;
+			}
+
+			get componentStyles() {
+				return componentStyles;
+			}
+
 			attributeChangedCallback(name, oldValue, newValue) {
 				if (this.cohortMap && this.cohortId && this.sourceKey) {
 					this.setLoading(true);
@@ -58,7 +62,7 @@ define([
 			}
 
 			setLoading(state) {
-				this.getEl(LOADING_PANEL_ID).style.display = state ? 'block' : 'none';
+				super.setLoading(state);
 				this.getEl(LOAD_DENSITY_BTN_ID).toggleAttribute('disabled', state);
 				this.getEl(LOAD_CLUSTERS_BTN_ID).toggleAttribute('disabled', state);
 			}
@@ -91,12 +95,6 @@ define([
 
 					this.setLoading(false);
 				});
-			}
-
-			render() {
-				this.root.innerHTML = componentTemplate;
-				this.attachStyles(componentStyles);
-				this.attachStyles(leafletStyles);
 			}
 		}
 
