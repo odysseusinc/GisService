@@ -49,7 +49,7 @@ define([
 			}
 
 			attributeChangedCallback(name, oldValue, newValue) {
-				if (this.cohortMap && this.cohortId && this.sourceKey) {
+				if (oldValue !== newValue && this.cohortMap && this.cohortId && this.sourceKey) {
 					this.setLoading(true);
 					this.cohortMap.setParams(this.cohortId, this.sourceKey);
 					this.cohortMap.refresh();

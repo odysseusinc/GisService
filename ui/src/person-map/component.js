@@ -38,6 +38,7 @@ define([
 
 		const PERSON_ID_ATTR = 'data-personid';
 		const MAP_CONTAINER_ID = '#map';
+		const COMPONENT_ID = '#component';
 
 		PersonMapWidget = class extends BaseMapWidget {
 			static TYPE = TYPE;
@@ -57,9 +58,15 @@ define([
 			}
 
 			attributeChangedCallback(name, oldValue, newValue) {
+				if (oldValue === newValue)
+					return;
+
 				if (this.personId && this.sourceKey) {
 					!this.mapInitiated && this.initMap();
+					this.toggleReadyState(true);
 					this.loadLocationHistory();
+				} else {
+					this.toggleReadyState(false);
 				}
 			}
 
@@ -73,6 +80,10 @@ define([
 
 			get componentStyles() {
 				return componentStyles;
+			}
+
+			toggleReadyState(state) {
+				this.getEl(COMPONENT_ID).classList.toggle('ready', state);
 			}
 
 			initMap() {
@@ -116,12 +127,7 @@ define([
 			}
 
 			clearLayers() {
-				this.map.eachLayer(layer => layer !== this.osmLayer && this.map.removeLayer(layer));
-			}
-
-			render() {
-				super.render();
-				window.onpopstate = event => this.loadLocationHistory();
+				this.map && this.map.eachLayer(layer => layer !== this.osmLayer && this.map.removeLayer(layer));
 			}
 		}
 
