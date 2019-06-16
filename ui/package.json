@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build/optimize.js",
+    "build": "node build/optimize.js && npm run compress",
+    "compress": "terser ./dist/bundle.js -o ./dist/bundle.min.js -c --source-map",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Pavel Grafkin",
@@ -12,11 +13,14 @@
   "dependencies": {
     "@ohdsi/ui-toolbox": "^1.1.0",
     "leaflet": "^1.5.1",
-    "numeral": "^2.0.6"
+    "numeral": "^2.0.6",
+    "requirejs": "^2.3.6"
   },
   "devDependencies": {
+    "@babel/core": "^7.4.5",
     "@babel/plugin-proposal-class-properties": "^7.4.4",
     "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
-    "@babel/preset-env": "^7.4.5"
+    "@babel/preset-env": "^7.4.5",
+    "terser": "^4.0.0"
   }
 }
