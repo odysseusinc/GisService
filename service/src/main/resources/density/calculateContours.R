@@ -151,10 +151,11 @@ disconnect(con)
 
 # fit <- kde2d(res$lon, res$lat, h = 0.015, n = 100)
 
-fit <- bkde2D(res, bandwidth = 0.005, gridsize = c(250, 250))
+bandwidth <- 0.005
+fit <- bkde2D(res, bandwidth = bandwidth, gridsize = c(250, 250))
 fit$x <- fit$x1
 fit$y <- fit$x2
-fit$z <- fit$fhat
+fit$z <- fit$fhat * bandwidth
 
 levels <- c(0.00000001, 0.1, 10, 100, 500, 1000)
 

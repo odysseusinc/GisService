@@ -68,7 +68,7 @@ define([
 		getMapBounds() {
 			const bounds = this.map.getBounds();
 			const neBounds = bounds.getNorthEast();
-			const swBounds = bounds.getSouthWest()
+			const swBounds = bounds.getSouthWest();
 			return {
 				northLatitude: neBounds.lat,
 				westLongitude: swBounds.lng,
@@ -82,7 +82,6 @@ define([
 		}
 
 		getDensityColor(d) {
-			// TODO: not correct numbers
 			return d >= 10000 ? '#800026' :
 				d >= 1000 ? '#BD0026' :
 					d >= 100 ? '#E31A1C' :
