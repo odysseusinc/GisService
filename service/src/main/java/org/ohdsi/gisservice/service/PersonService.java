@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class PersonService {
@@ -35,7 +36,7 @@ public class PersonService {
 
         String sql;
         try (InputStream is = new ClassPathResource(GET_PERSON_BOUNDS_SQL_PATH).getInputStream()) {
-            sql = IOUtils.toString(is);
+            sql = IOUtils.toString(is, StandardCharsets.UTF_8);
             sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "personId"}, new String[]{source.getCdmSchema(), personId.toString()});
             sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
         }

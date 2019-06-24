@@ -67,7 +67,7 @@ public class CohortService {
 
         String sql;
         try (InputStream is = new ClassPathResource(GET_COHORT_BOUNDS_SQL_PATH).getInputStream()) {
-            sql = IOUtils.toString(is);
+            sql = IOUtils.toString(is, StandardCharsets.UTF_8);
             sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "resultSchema", "cohortId"}, new String[]{source.getCdmSchema(), source.getResultSchema(), cohortId.toString()});
             sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
         }
