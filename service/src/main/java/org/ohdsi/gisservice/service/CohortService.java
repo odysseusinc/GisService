@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.odysseusinc.arachne.commons.utils.TemplateUtils;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.AnalysisSyncRequestDTO;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
+import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import org.apache.commons.io.IOUtils;
 import org.ohdsi.gisservice.dto.GeoBoundingBox;
@@ -13,6 +14,7 @@ import org.ohdsi.gisservice.utils.Utils;
 import org.ohdsi.sql.SqlRender;
 import org.ohdsi.sql.SqlTranslate;
 import org.springframework.core.convert.support.GenericConversionService;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,8 +32,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
+@Slf4j
 public class CohortService {
     private static final String GET_COHORT_BOUNDS_SQL_PATH = "/bounds/getCohortBounds.sql";
 
@@ -62,7 +66,7 @@ public class CohortService {
         DataSourceUnsecuredDTO source = sourceService.getDataSourceDTO(dataSourceKey);
 
         String sql;
-        try (InputStream is = ClassLoader.class.getResourceAsStream(GET_COHORT_BOUNDS_SQL_PATH)) {
+        try (InputStream is = new ClassPathResource(GET_COHORT_BOUNDS_SQL_PATH).getInputStream()) {
             sql = IOUtils.toString(is);
             sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "resultSchema", "cohortId"}, new String[]{source.getCdmSchema(), source.getResultSchema(), cohortId.toString()});
             sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
@@ -126,13 +130,26 @@ public class CohortService {
 
     private JsonNode resolveJsonResult(MultipartFile[] resultFiles, String filename) {
 
-        MultipartFile resFile = Arrays.stream(resultFiles)
+        Optional<MultipartFile> resFile = Arrays.stream(resultFiles)
                 .filter(mf -> Objects.equals(mf.getOriginalFilename(), filename))
+                .findFirst();
+
+        if (!resFile.isPresent()) {
+            Arrays.stream(resultFiles)
+                .filter(mf -> Objects.equals(mf.getOriginalFilename(), "stdout.txt"))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Cannot extract result file"));
+                .ifPresent(f -> {
+                    try {
+                        log.error(new String(f.getBytes(), StandardCharsets.UTF_8));
+                    } catch (IOException e) {
+                        log.error("Cannot extract contents of stdout.txt");
+                    }
+                });
+            throw new RuntimeException("Cannot extract result file");
+        }
 
         try {
-            return objectMapper.readTree(new String(resFile.getBytes(), StandardCharsets.UTF_8));
+            return objectMapper.readTree(new String(resFile.get().getBytes(), StandardCharsets.UTF_8));
         } catch (IOException ex) {
             throw new UncheckedIOException("Cannot parse result file", ex);
         }

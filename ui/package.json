@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build/optimize.js && npm run compress",
+    "build-raw": "node build/optimize.js",
+    "build": "npm run build-raw && npm run compress",
     "compress": "terser ./dist/bundle.js -o ./dist/bundle.min.js -c --source-map",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -9,6 +9,7 @@ import org.ohdsi.gisservice.dto.PersonLocationHistory;
 import org.ohdsi.gisservice.utils.Utils;
 import org.ohdsi.sql.SqlRender;
 import org.ohdsi.sql.SqlTranslate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ public class PersonService {
         DataSourceUnsecuredDTO source = sourceService.getDataSourceDTO(dataSourceKey);
 
         String sql;
-        try (InputStream is = ClassLoader.class.getResourceAsStream(GET_PERSON_BOUNDS_SQL_PATH)) {
+        try (InputStream is = new ClassPathResource(GET_PERSON_BOUNDS_SQL_PATH).getInputStream()) {
             sql = IOUtils.toString(is);
             sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "personId"}, new String[]{source.getCdmSchema(), personId.toString()});
             sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
