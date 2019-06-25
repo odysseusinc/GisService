@@ -1,0 +1,36 @@
+button {
+    cursor: pointer;
+}
+
+.atlas-cohort-report {
+    display: flex;
+    padding: 1rem;
+}
+
+.atlas-cohort-report__map-container {
+    position: relative;
+}
+
+.atlas-cohort-report__map {
+    height: 600px;
+    width: 800px;
+}
+
+.atlas-cohort-report__btn-group {
+    display: flex;
+    flex-direction: column;
+    margin-left: 2rem;
+}
+
+.atlas-cohort-report__btn {
+    margin-bottom: 1rem;
+}
+
+.cluster-icon {
+    align-items: center;
+    border-radius: 50%;
+    background: orange;
+    display: flex !important;
+    justify-content: center;
+    font-weight: 600;
+}
