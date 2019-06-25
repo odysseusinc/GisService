@@ -4,6 +4,7 @@ import com.odysseusinc.arachne.commons.types.DBMSType;
 import com.odysseusinc.arachne.commons.utils.QuoteUtils;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.KerberosAuthMechanism;
+import org.jasypt.encryption.StringEncryptor;
 import org.ohdsi.gisservice.model.Source;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
@@ -15,16 +16,19 @@ public class SourceService {
 
     private JdbcTemplate jdbcTemplate;
     private ConversionService conversionService;
+    private final EncryptionService encryptionService;
 
     // {h-schema} placeholder doesn't seem to work in entityManager.createQuery
     // same as in @Subselect annotation on top of @Entity (https://hibernate.atlassian.net/browse/HHH-7913)
     @Value("${spring.jpa.properties.hibernate.default_schema}")
     private String schema;
 
-    public SourceService(JdbcTemplate jdbcTemplate, ConversionService conversionService) {
+    public SourceService(JdbcTemplate jdbcTemplate, ConversionService conversionService,
+                         EncryptionService encryptionService) {
 
         this.jdbcTemplate = jdbcTemplate;
         this.conversionService = conversionService;
+        this.encryptionService = encryptionService;
     }
 
     public Source getByKey(String key) {
@@ -56,8 +60,8 @@ public class SourceService {
             source.setSourceName(rs.getString("name"));
             source.setDialect(DBMSType.valueOf(rs.getString("dialect")));
             source.setConnectionString(rs.getString("connection_string"));
-            source.setUsername(rs.getString("username"));
-            source.setPassword(rs.getString("password"));
+            source.setUsername(encryptionService.decrypt(rs.getString("username")));
+            source.setPassword(encryptionService.decrypt(rs.getString("password")));
             source.setKrbAuthMethod(KerberosAuthMechanism.valueOf(rs.getString("krb_auth_method")));
             source.setKeyfileName(rs.getString("keytab_name"));
             source.setKeyfile(rs.getBytes("krb_keytab"));

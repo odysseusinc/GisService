@@ -113,6 +113,11 @@
             <artifactId>SqlRender</artifactId>
             <version>1.6.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.jasypt</groupId>
+            <artifactId>jasypt</artifactId>
+            <version>1.9.3</version>
+        </dependency>
     </dependencies>
 
     <build>
