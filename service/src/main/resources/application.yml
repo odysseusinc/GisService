@@ -47,3 +47,8 @@ hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds: 180000
 ribbon:
   ConnectTimeout: 60000
   ReadTimeout: 60000
+
+kerberos:
+  timeout: 60
+  kinitPath:
+  configPath: /etc/krb5.conf

@@ -4,54 +4,51 @@ import com.odysseusinc.arachne.commons.types.DBMSType;
 import com.odysseusinc.arachne.commons.utils.QuoteUtils;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.KerberosAuthMechanism;
-import org.jasypt.encryption.StringEncryptor;
+import com.odysseusinc.datasourcemanager.krblogin.KerberosService;
+import com.odysseusinc.datasourcemanager.krblogin.RuntimeServiceMode;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.ohdsi.gisservice.converter.DataSourceMapper;
 import org.ohdsi.gisservice.model.Source;
+import org.ohdsi.gisservice.utils.JdbcTemplateConsumer;
+import org.ohdsi.sql.SqlRender;
+import org.ohdsi.sql.SqlTranslate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.convert.ConversionService;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
+@RequiredArgsConstructor
 @Service
 public class SourceService {
 
-    private JdbcTemplate jdbcTemplate;
-    private ConversionService conversionService;
+    private final JdbcTemplate jdbcTemplate;
     private final EncryptionService encryptionService;
+    private final DataSourceMapper dataSourceMapper;
+    private final KerberosService kerberosService;
 
     // {h-schema} placeholder doesn't seem to work in entityManager.createQuery
     // same as in @Subselect annotation on top of @Entity (https://hibernate.atlassian.net/browse/HHH-7913)
     @Value("${spring.jpa.properties.hibernate.default_schema}")
     private String schema;
 
-    public SourceService(JdbcTemplate jdbcTemplate, ConversionService conversionService,
-                         EncryptionService encryptionService) {
+    public Source getByKey(String key) throws IOException {
 
-        this.jdbcTemplate = jdbcTemplate;
-        this.conversionService = conversionService;
-        this.encryptionService = encryptionService;
-    }
+        String sql;
 
-    public Source getByKey(String key) {
-
-        String sql = "SELECT\n" +
-        "  s.source_key as key,\n" +
-        "  s.source_name as name,\n" +
-        "  UPPER(s.source_dialect) as dialect,\n" +
-        "  s.source_connection as connection_string,\n" +
-        "  s.username,\n" +
-        "  s.password,\n" +
-        "  s.krb_auth_method,\n" +
-        "  s.keytab_name,\n" +
-        "  s.krb_keytab,\n" +
-        "  s.krb_admin_server,\n" +
-        "  cdm_daimon.table_qualifier as cdm_schema,\n" +
-        "  results_daimon.table_qualifier as results_schema,\n" +
-        "  temp_daimon.table_qualifier as temp_schema\n" +
-        "FROM " + schema + ".source s\n" +
-        "  LEFT JOIN " + schema + ".source_daimon cdm_daimon on s.source_id = cdm_daimon.source_id AND cdm_daimon.daimon_type = 0\n" +
-        "  LEFT JOIN " + schema + ".source_daimon results_daimon on s.source_id = results_daimon.source_id AND results_daimon.daimon_type = 2\n" +
-        "  LEFT JOIN " + schema + ".source_daimon temp_daimon on s.source_id = temp_daimon.source_id AND temp_daimon.daimon_type = 5\n" +
-        "WHERE s.deleted_date IS NULL AND s.source_key = '" + QuoteUtils.escapeSql(key) + "'";
+        try(InputStream in = new ClassPathResource("/sql/getSource.sql").getInputStream()) {
+            sql = IOUtils.toString(in, StandardCharsets.UTF_8);
+            sql = SqlRender.renderSql(sql, new String[]{ "webapiSchema", "sourceKey" }, new String[]{ schema, QuoteUtils.escapeSql(key) });
+            sql = SqlTranslate.translateSql(sql, "postgresql"); //TODO add webapi dialect
+        }
 
         Source source = new Source();
 
@@ -74,9 +71,35 @@ public class SourceService {
         return source;
     }
 
-    public DataSourceUnsecuredDTO getDataSourceDTO(String dataSourceKey) {
+    public DataSourceUnsecuredDTO getDataSourceDTO(String dataSourceKey) throws IOException {
 
         Source source = getByKey(dataSourceKey);
-        return conversionService.convert(source, DataSourceUnsecuredDTO.class);
+        return dataSourceMapper.toDatasourceUnsecuredDTO(source);
+    }
+
+    public <T> T executeOnSource(DataSourceUnsecuredDTO dataSourceData, JdbcTemplateConsumer<T> consumer) throws IOException {
+
+        if (Objects.isNull(consumer)) {
+            throw new IllegalArgumentException("consumer is required");
+        }
+
+        File tempDir = Files.createTempDirectory("gis").toFile();
+
+        // Kerberos
+        if (dataSourceData.getUseKerberos()) {
+            kerberosService.runKinit(dataSourceData, RuntimeServiceMode.SINGLE, tempDir);
+        }
+
+        DriverManagerDataSource dataSource = new DriverManagerDataSource(
+                dataSourceData.getConnectionString(),
+                dataSourceData.getUsername(),
+                dataSourceData.getPassword()
+        );
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        try {
+            return consumer.execute(jdbcTemplate);
+        } finally {
+            FileUtils.deleteQuietly(tempDir);
+        }
     }
 }
