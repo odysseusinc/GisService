@@ -9,12 +9,14 @@ user <- Sys.getenv("DBMS_USERNAME")
 pwd <- Sys.getenv("DBMS_PASSWORD")
 cdmSchema <- Sys.getenv("DBMS_SCHEMA")
 resultSchema <- Sys.getenv("RESULT_SCHEMA")
+driversPath <- (function(path) if (path == "") NULL else path)( Sys.getenv("JDBC_DRIVER_PATH") )
 
 connectionDetails <- DatabaseConnector::createConnectionDetails(
   dbms=dbms, 
   connectionString=connectionString,
   user=user,
-  password=pwd
+  password=pwd,
+  pathToDriver = driversPath
 )
 
 # TODO: the same SQL is in Density script, move out
