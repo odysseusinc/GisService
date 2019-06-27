@@ -26,6 +26,7 @@ spring:
       hibernate:
         database-platform: org.hibernate.dialect.PostgreSQL95Dialect
         default_schema: public
+        dialect: org.hibernate.dialect.PostgreSQL95Dialect
         temp:
           use_jdbc_metadata_defaults: false
   flyway:

@@ -15,18 +15,27 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Objects;
+import javax.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.dialect.Dialect;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.ohdsi.gisservice.converter.DataSourceMapper;
 import org.ohdsi.gisservice.model.Source;
+import org.ohdsi.gisservice.utils.DbmsUtils;
 import org.ohdsi.gisservice.utils.JdbcTemplateConsumer;
 import org.ohdsi.sql.SqlRender;
 import org.ohdsi.sql.SqlTranslate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -37,6 +46,7 @@ public class SourceService {
     private final EncryptionService encryptionService;
     private final DataSourceMapper dataSourceMapper;
     private final KerberosService kerberosService;
+    private final EntityManager entityManager;
 
     // {h-schema} placeholder doesn't seem to work in entityManager.createQuery
     // same as in @Subselect annotation on top of @Entity (https://hibernate.atlassian.net/browse/HHH-7913)
@@ -48,9 +58,12 @@ public class SourceService {
         String sql;
 
         try(InputStream in = new ClassPathResource("/sql/getSource.sql").getInputStream()) {
+            Session session = entityManager.unwrap(Session.class);
+            SessionFactory sessionFactory = session.getSessionFactory();
+            Dialect dialect = ((SessionFactoryImplementor)sessionFactory).getJdbcServices().getDialect();
             sql = IOUtils.toString(in, StandardCharsets.UTF_8);
             sql = SqlRender.renderSql(sql, new String[]{ "webapiSchema", "sourceKey" }, new String[]{ schema, QuoteUtils.escapeSql(key) });
-            sql = SqlTranslate.translateSql(sql, "postgresql"); //TODO add webapi dialect
+            sql = SqlTranslate.translateSql(sql, DbmsUtils.getCurrentDBMSType(dialect).getOhdsiDB());
         }
 
         Source source = new Source();
