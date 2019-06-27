@@ -4,13 +4,18 @@ import com.odysseusinc.arachne.commons.types.DBMSType;
 import com.odysseusinc.arachne.commons.utils.QuoteUtils;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.KerberosAuthMechanism;
+import com.odysseusinc.arachne.execution_engine_common.util.BigQueryUtils;
 import com.odysseusinc.datasourcemanager.krblogin.KerberosService;
 import com.odysseusinc.datasourcemanager.krblogin.RuntimeServiceMode;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
@@ -84,6 +89,16 @@ public class SourceService {
         }
 
         File tempDir = Files.createTempDirectory("gis").toFile();
+
+        // BigQuery
+        if (Objects.equals(DBMSType.BIGQUERY, dataSourceData.getType()) && Objects.nonNull(dataSourceData.getKeyfile())) {
+            File keyFile = Files.createTempFile(tempDir.toPath(), "", ".json").toFile();
+            try(OutputStream out = new FileOutputStream(keyFile)) {
+                IOUtils.write(dataSourceData.getKeyfile(), out);
+            }
+            String connStr = BigQueryUtils.replaceBigQueryKeyPath(dataSourceData.getConnectionString(), keyFile.getAbsolutePath());
+            dataSourceData.setConnectionString(connStr);
+        }
 
         // Kerberos
         if (dataSourceData.getUseKerberos()) {
