@@ -52,3 +52,18 @@ kerberos:
   timeout: 60
   kinitPath:
   configPath: /etc/krb5.conf
+
+cors:
+  enabled: true
+  allowedOrigins:
+    - http://localhost:5555
+    - http://localhost
+    - http://arachnenetwork.com
+  allowedMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowedHeaders:
+    - authorization

@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 @RestController
-@CrossOrigin // TODO: remove
 @RequestMapping(value = "/api/v1/cohort")
 public class CohortController {
 
