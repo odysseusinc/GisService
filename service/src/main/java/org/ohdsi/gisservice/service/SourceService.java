@@ -4,20 +4,12 @@ import com.odysseusinc.arachne.commons.types.DBMSType;
 import com.odysseusinc.arachne.commons.utils.QuoteUtils;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.KerberosAuthMechanism;
-import com.odysseusinc.arachne.execution_engine_common.util.BigQueryUtils;
 import com.odysseusinc.datasourcemanager.krblogin.KerberosService;
-import com.odysseusinc.datasourcemanager.krblogin.RuntimeServiceMode;
-import java.io.File;
-import java.io.FileOutputStream;
+import com.odysseusinc.datasourcemanager.jdbc.DataSourceJdbcExecutor;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.Objects;
 import javax.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -26,32 +18,35 @@ import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.ohdsi.gisservice.converter.DataSourceMapper;
 import org.ohdsi.gisservice.model.Source;
 import org.ohdsi.gisservice.utils.DbmsUtils;
-import org.ohdsi.gisservice.utils.JdbcTemplateConsumer;
 import org.ohdsi.sql.SqlRender;
 import org.ohdsi.sql.SqlTranslate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Service;
 
-@RequiredArgsConstructor
 @Service
-public class SourceService {
+public class SourceService extends DataSourceJdbcExecutor {
 
     private final JdbcTemplate jdbcTemplate;
     private final EncryptionService encryptionService;
     private final DataSourceMapper dataSourceMapper;
-    private final KerberosService kerberosService;
     private final EntityManager entityManager;
 
     // {h-schema} placeholder doesn't seem to work in entityManager.createQuery
     // same as in @Subselect annotation on top of @Entity (https://hibernate.atlassian.net/browse/HHH-7913)
     @Value("${spring.jpa.properties.hibernate.default_schema}")
     private String schema;
+
+    public SourceService(JdbcTemplate jdbcTemplate, EncryptionService encryptionService, DataSourceMapper dataSourceMapper, KerberosService kerberosService, EntityManager entityManager) {
+
+        super(kerberosService);
+        this.jdbcTemplate = jdbcTemplate;
+        this.encryptionService = encryptionService;
+        this.dataSourceMapper = dataSourceMapper;
+
+        this.entityManager = entityManager;
+    }
 
     public Source getByKey(String key) throws IOException {
 
@@ -93,39 +88,5 @@ public class SourceService {
         return dataSourceMapper.toDatasourceUnsecuredDTO(source);
     }
 
-    public <T> T executeOnSource(DataSourceUnsecuredDTO dataSourceData, JdbcTemplateConsumer<T> consumer) throws IOException {
 
-        if (Objects.isNull(consumer)) {
-            throw new IllegalArgumentException("consumer is required");
-        }
-
-        File tempDir = Files.createTempDirectory("gis").toFile();
-
-        // BigQuery
-        if (Objects.equals(DBMSType.BIGQUERY, dataSourceData.getType()) && Objects.nonNull(dataSourceData.getKeyfile())) {
-            File keyFile = Files.createTempFile(tempDir.toPath(), "", ".json").toFile();
-            try(OutputStream out = new FileOutputStream(keyFile)) {
-                IOUtils.write(dataSourceData.getKeyfile(), out);
-            }
-            String connStr = BigQueryUtils.replaceBigQueryKeyPath(dataSourceData.getConnectionString(), keyFile.getAbsolutePath());
-            dataSourceData.setConnectionString(connStr);
-        }
-
-        // Kerberos
-        if (dataSourceData.getUseKerberos()) {
-            kerberosService.runKinit(dataSourceData, RuntimeServiceMode.SINGLE, tempDir);
-        }
-
-        DriverManagerDataSource dataSource = new DriverManagerDataSource(
-                dataSourceData.getConnectionString(),
-                dataSourceData.getUsername(),
-                dataSourceData.getPassword()
-        );
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        try {
-            return consumer.execute(jdbcTemplate);
-        } finally {
-            FileUtils.deleteQuietly(tempDir);
-        }
-    }
 }
