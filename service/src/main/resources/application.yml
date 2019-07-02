@@ -26,6 +26,7 @@ spring:
       hibernate:
         database-platform: org.hibernate.dialect.PostgreSQL95Dialect
         default_schema: public
+        dialect: org.hibernate.dialect.PostgreSQL95Dialect
         temp:
           use_jdbc_metadata_defaults: false
   flyway:
@@ -47,3 +48,23 @@ hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds: 180000
 ribbon:
   ConnectTimeout: 60000
   ReadTimeout: 60000
+
+kerberos:
+  timeout: 60
+  kinitPath:
+  configPath: /etc/krb5.conf
+
+cors:
+  enabled: true
+  allowedOrigins:
+    - http://localhost:8080
+    - http://localhost
+    - http://arachnenetwork.com
+  allowedMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowedHeaders:
+    - authorization

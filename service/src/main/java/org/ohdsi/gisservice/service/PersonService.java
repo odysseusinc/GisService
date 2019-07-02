@@ -6,11 +6,9 @@ import org.apache.commons.io.IOUtils;
 import org.ohdsi.gisservice.dto.GeoBoundingBox;
 import org.ohdsi.gisservice.dto.PersonLocation;
 import org.ohdsi.gisservice.dto.PersonLocationHistory;
-import org.ohdsi.gisservice.utils.Utils;
 import org.ohdsi.sql.SqlRender;
 import org.ohdsi.sql.SqlTranslate;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -36,20 +34,22 @@ public class PersonService {
 
         String sql;
         try (InputStream is = new ClassPathResource(GET_PERSON_BOUNDS_SQL_PATH).getInputStream()) {
-            sql = IOUtils.toString(is, StandardCharsets.UTF_8);
-            sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "personId"}, new String[]{source.getCdmSchema(), personId.toString()});
-            sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
+            String sqlTmpl = IOUtils.toString(is, StandardCharsets.UTF_8);
+            sqlTmpl = SqlRender.renderSql(sqlTmpl, new String[]{"cdmSchema", "personId"}, new String[]{source.getCdmSchema(), personId.toString()});
+            sql = SqlTranslate.translateSql(sqlTmpl, source.getType().getOhdsiDB());
         }
 
-        var locationHistory = new PersonLocationHistory();
-        JdbcTemplate jdbcTemplate = Utils.getJdbcTemplate(source);
-        jdbcTemplate.query(sql, rs -> {
-            var location = new PersonLocation();
-            location.setLatitude(rs.getDouble("latitude"));
-            location.setLongitude(rs.getDouble("longitude"));
-            location.setStartDate(rs.getDate("start_date"));
-            location.setEndDate(rs.getDate("end_date"));
-            locationHistory.getLocations().add(location);
+        PersonLocationHistory locationHistory = sourceService.executeOnSource(source, jdbcTemplate -> {
+            var lh = new PersonLocationHistory();
+            jdbcTemplate.query(sql, rs -> {
+                var location = new PersonLocation();
+                location.setLatitude(rs.getDouble("latitude"));
+                location.setLongitude(rs.getDouble("longitude"));
+                location.setStartDate(rs.getDate("start_date"));
+                location.setEndDate(rs.getDate("end_date"));
+                lh.getLocations().add(location);
+            });
+            return lh;
         });
 
         var bbox = new GeoBoundingBox();

@@ -5,17 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.odysseusinc.arachne.commons.utils.TemplateUtils;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.AnalysisSyncRequestDTO;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import org.apache.commons.io.IOUtils;
+import org.ohdsi.gisservice.converter.GeoBoundingBoxMapper;
 import org.ohdsi.gisservice.dto.GeoBoundingBox;
 import org.ohdsi.gisservice.service.client.ExecutionEngineClient;
-import org.ohdsi.gisservice.utils.Utils;
 import org.ohdsi.sql.SqlRender;
 import org.ohdsi.sql.SqlTranslate;
-import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -34,10 +34,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Service
 @Slf4j
 public class CohortService {
     private static final String GET_COHORT_BOUNDS_SQL_PATH = "/bounds/getCohortBounds.sql";
+    private static final String GET_LOCATION_SQL_FILENAME = "getLocation.sql";
+    private static final String GET_LOCATION_SQL_PATH = "/sql/" + GET_LOCATION_SQL_FILENAME;
 
     private static final String CALCULATE_CONTOURS_R_PATH = "/density/calculateContours.R";
     private static final String CALCULATE_CONTOURS_RESULT_FILE = "geo.json";
@@ -50,15 +53,7 @@ public class CohortService {
     private final ExecutionEngineClient executionEngineClient;
     private final SourceService sourceService;
     private final ObjectMapper objectMapper;
-    private final GenericConversionService conversionService;
-
-    public CohortService(ExecutionEngineClient executionEngineClient, SourceService sourceService, ObjectMapper objectMapper, GenericConversionService conversionService) {
-
-        this.executionEngineClient = executionEngineClient;
-        this.sourceService = sourceService;
-        this.objectMapper = objectMapper;
-        this.conversionService = conversionService;
-    }
+    private final GeoBoundingBoxMapper geoBoundingBoxMapper;
 
     @PreAuthorize("hasPermission(#cohortId, 'cohortdefinition', 'get') && hasPermission(#dataSourceKey, 'source', 'access')")
     public GeoBoundingBox getCohortBounds(Integer cohortId, String dataSourceKey) throws IOException, SQLException {
@@ -67,21 +62,23 @@ public class CohortService {
 
         String sql;
         try (InputStream is = new ClassPathResource(GET_COHORT_BOUNDS_SQL_PATH).getInputStream()) {
-            sql = IOUtils.toString(is, StandardCharsets.UTF_8);
-            sql = SqlRender.renderSql(sql, new String[]{"cdmSchema", "resultSchema", "cohortId"}, new String[]{source.getCdmSchema(), source.getResultSchema(), cohortId.toString()});
-            sql = SqlTranslate.translateSql(sql, source.getType().getOhdsiDB());
+            String sqlTmpl = IOUtils.toString(is, StandardCharsets.UTF_8);
+            sqlTmpl = SqlRender.renderSql(sqlTmpl, new String[]{"cdmSchema", "resultSchema", "cohortId"}, new String[]{source.getCdmSchema(), source.getResultSchema(), cohortId.toString()});
+            sql = SqlTranslate.translateSql(sqlTmpl, source.getType().getOhdsiDB());
         }
 
-        var bbox = new GeoBoundingBox();
-        JdbcTemplate jdbcTemplate = Utils.getJdbcTemplate(source);
-        jdbcTemplate.query(sql, rs -> {
-            bbox.setNorthLatitude(rs.getDouble("max_latitude"));
-            bbox.setWestLongitude(rs.getDouble("max_longitude"));
-            bbox.setSouthLatitude(rs.getDouble("min_latitude"));
-            bbox.setEastLongitude(rs.getDouble("min_longitude"));
-
+        GeoBoundingBox boundingBox = sourceService.executeOnSource(source, jdbcTemplate -> {
+            var bbox = new GeoBoundingBox();
+            jdbcTemplate.query(sql, rs -> {
+                bbox.setNorthLatitude(rs.getDouble("max_latitude"));
+                bbox.setWestLongitude(rs.getDouble("max_longitude"));
+                bbox.setSouthLatitude(rs.getDouble("min_latitude"));
+                bbox.setEastLongitude(rs.getDouble("min_longitude"));
+            });
+            return bbox;
         });
-        return bbox;
+
+        return boundingBox;
     }
 
     @PreAuthorize("hasPermission(#cohortId, 'cohortdefinition', 'get') && hasPermission(#dataSourceKey, 'source', 'access')")
@@ -102,16 +99,20 @@ public class CohortService {
 
         DataSourceUnsecuredDTO dataSourceDTO = sourceService.getDataSourceDTO(dataSourceKey);
 
-        Map<String, Object> params = conversionService.convert(geoBoundingBox, Map.class);
+        Map<String, Object> params = geoBoundingBoxMapper.toMap(geoBoundingBox);
         params.put(COHORT_ID_PARAM, cohortId);
         String script = TemplateUtils.loadTemplate(scriptPath).apply(params);
+        String locationSql = TemplateUtils.loadTemplate(GET_LOCATION_SQL_PATH).apply(params);
 
         var analysisRequest = buildRequest(dataSourceDTO, scriptFn);
 
         MultipartFile[] multipartFiles = executionEngineClient.executeSync(new HashMap<String, Object>() {
             {
                 put("analysisRequest", analysisRequest);
-                put("file", new MockMultipartFile(scriptFn, scriptFn, null, script.getBytes()));
+                put("file", new MockMultipartFile[]{
+                        new MockMultipartFile(scriptFn, scriptFn, MediaType.TEXT_PLAIN_VALUE, script.getBytes()),
+                        new MockMultipartFile(GET_LOCATION_SQL_FILENAME, GET_LOCATION_SQL_FILENAME, MediaType.TEXT_PLAIN_VALUE, locationSql.getBytes())
+                });
             }
         });
 
