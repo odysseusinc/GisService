@@ -2,6 +2,7 @@ library(DatabaseConnector)
 library(geojson) # required for "as.geojson"
 library(sp)
 library(SqlRender)
+library(dplyr)
 
 dbms <- Sys.getenv("DBMS_TYPE")
 connectionString <- Sys.getenv("CONNECTION_STRING")
@@ -27,11 +28,27 @@ con <- DatabaseConnector::connect(connectionDetails)
 res <- DatabaseConnector::lowLevelQuerySql(con, sql)
 disconnect(con)
 
-clusters <- kmeans(res, 10)
+clusterCnt <- 10
 
-coords <- clusters$centers
-size <- clusters$size
+if (clusterCnt < nrow(res)) {
+    clusters <- kmeans(res[,c('longitude', 'latitude')], clusterCnt)
 
-sp <- SpatialPointsDataFrame(coords, as.data.frame(size))
+    centersWithSubjectIds <- left_join(
+        as.data.frame(clusters$centers),
+        res[clusters$cluster %in% seq(1,clusterCnt)[clusters$size==1], ],
+        by = c('longitude' = 'longitude', 'latitude' = 'latitude')
+    )
+    size <- clusters$size
+
+    sp <- SpatialPointsDataFrame(
+        centersWithSubjectIds[,c('longitude', 'latitude')],
+        data.frame(size, subject_id = centersWithSubjectIds[,c('subject_id')])
+    )
+} else {
+    sp <- SpatialPointsDataFrame(
+        res[,c('longitude', 'latitude')],
+        data.frame(subject_id = res[, c('subject_id')], size = 1)
+    )
+}
 
 cat(as.geojson(sp), file = "clusters.json")
