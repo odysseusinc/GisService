@@ -57,7 +57,7 @@ kerberos:
 cors:
   enabled: true
   allowedOrigins:
-    - http://localhost:5555
+    - http://localhost:8080
     - http://localhost
     - http://arachnenetwork.com
   allowedMethods:

@@ -20,6 +20,7 @@
         <feign.version>10.2.3</feign.version>
         <arachne.version>1.15.0-SNAPSHOT</arachne.version>
         <mapstruct.version>1.3.0.Final</mapstruct.version>
+        <dockerfile.version>1.4.10</dockerfile.version>
     </properties>
 
     <dependencyManagement>
@@ -156,6 +157,27 @@
                             <version>${lombok.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile.version}</version>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <repository>odysseusinc/${project.artifactId}</repository>
+                    <tag>${project.version}</tag>
+                    <buildArgs>
+                        <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
+                    </buildArgs>
                 </configuration>
             </plugin>
         </plugins>
