@@ -1,7 +1,8 @@
 define([
+	'../const.js',
 	'../Utils.js',
 	'../../node_modules/numeral/min/numeral.min.js',
-], ({ httpQuery, addQueryParams }, numeral) => {
+], (constants, { httpQuery, addQueryParams }, numeral) => {
 	return class CohortMap {
 
 		constructor({
@@ -122,16 +123,22 @@ define([
 			this.clearLayers();
 			const clusters = L.geoJSON(geoJson, {
 				pointToLayer: (feature, latlng) => {
-					return new L.Marker(latlng, {
-						icon: new L.DivIcon({
-							iconSize: [35, 35],
-							className: 'cluster-icon',
-							html: '<span class="cluster-label">' + numeral(feature.properties.size).format('0a') + '</span>'
-						})
-					}).on('click', (e) => {
-						this.map.setView(e.latlng, this.map.getZoom() + 1);
-						this.loadClusters().then(dm => this.updateClusterMap(dm));
-					});
+					if (feature.properties.size <= 1) {
+						return new L.Marker(latlng, {icon: constants.DefaultIcon}).bindPopup(
+							`Person ID: <a href="/#/profiles/${this.sourceKey}/${feature.properties.subject_id}">${feature.properties.subject_id}</a>`
+						);
+					} else {
+						return new L.Marker(latlng, {
+							icon: new L.DivIcon({
+								iconSize: [35, 35],
+								className: 'cluster-icon',
+								html: '<span class="cluster-label">' + numeral(feature.properties.size).format('0a') + '</span>'
+							})
+						}).on('click', (e) => {
+							this.map.setView(e.latlng, this.map.getZoom() + 1);
+							this.loadClusters().then(dm => this.updateClusterMap(dm));
+						});
+					}
 				}
 			});
 			clusters.addTo(this.map);
