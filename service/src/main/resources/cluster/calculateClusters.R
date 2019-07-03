@@ -30,7 +30,9 @@ disconnect(con)
 
 clusterCnt <- 10
 
-if (clusterCnt < nrow(res)) {
+if (nrow(res) == 0) { # Empty geojson when no points found
+  sp <- '{"type": "FeatureCollection", "features": []}'
+} else if (clusterCnt < nrow(res)) {
     clusters <- kmeans(res[,c('longitude', 'latitude')], clusterCnt)
 
     centersWithSubjectIds <- left_join(
