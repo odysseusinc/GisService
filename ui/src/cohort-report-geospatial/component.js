@@ -71,29 +71,25 @@ define([
 				this.cohortMap = new CohortMap({
 					gisServiceUrl: config.gisServiceUrl,
 					tilesServerUrl: config.tilesServerUrl,
-					mapContainerEl: this.getEl(MAP_CONTAINER_ID)
+					mapContainerEl: this.getEl(MAP_CONTAINER_ID),
+					setLoading: this.setLoading.bind(this)
 				});
 
 				this.root.querySelector(LOAD_DENSITY_BTN_ID).addEventListener('click', async () => {
-					this.setLoading(true);
 					try {
 						await this.cohortMap.updateDensityMap();
 					} catch (e) {
 						alert('Cannot retrieve density map');
 						console.log(e);
 					}
-					this.setLoading(false);
 				});
 				this.root.querySelector(LOAD_CLUSTERS_BTN_ID).addEventListener('click', async () => {
-					this.setLoading(true);
 					try {
 						await this.cohortMap.updateClusterMap();
 					} catch (e) {
 						alert('Cannot retrieve clusters');
 						console.log(e);
 					}
-
-					this.setLoading(false);
 				});
 			}
 		}

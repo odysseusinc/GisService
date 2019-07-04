@@ -9,10 +9,12 @@ define([
 			gisServiceUrl,
 			tilesServerUrl,
 			mapContainerEl,
+			setLoading,
 		}) {
 			this.gisServiceUrl = gisServiceUrl;
 			this.tilesServerUrl = tilesServerUrl;
 			this.mapContainerEl = mapContainerEl;
+			this.setLoading = setLoading;
 		}
 
 		setParams(cohortId, sourceKey) {
@@ -59,10 +61,6 @@ define([
 
 			this.map.addLayer(this.osmLayer);
 
-			this.map.on('moveend', () => {
-				this.clearLayers();
-			});
-
 			this.mapInitiated = true;
 		}
 
@@ -108,14 +106,20 @@ define([
 			};
 		}
 
-		loadDensityMap() {
+		async loadDensityMap() {
+			this.setLoading(true);
 			const url = this.getDensityUrl(this.cohortId, this.sourceKey, this.getMapBounds());
-			return httpQuery(url);
+			const res = await httpQuery(url);
+			this.setLoading(false);
+			return res;
 		}
 
-		loadClusters() {
+		async loadClusters() {
+			this.setLoading(true);
 			const url = this.getClustersUrl(this.cohortId, this.sourceKey, this.getMapBounds());
-			return httpQuery(url);
+			const res = await httpQuery(url);
+			this.setLoading(false);
+			return res;
 		}
 
 		async updateClusterMap() {
