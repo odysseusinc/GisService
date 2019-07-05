@@ -137,13 +137,13 @@ sql <- SqlRender::render(sql, resultSchema = resultSchema, cdmSchema = cdmSchema
 sql <- SqlRender::translate(sql, connectionDetails$dbms)
 
 con <- DatabaseConnector::connect(connectionDetails)
-res <- DatabaseConnector::lowLevelQuerySql(con, sql)
+res <- DatabaseConnector::querySql(con, sql)
 disconnect(con)
 
 # fit <- kde2d(res$lon, res$lat, h = 0.015, n = 100)
 
 bandwidth <- 0.005
-fit <- bkde2D(res[,c('longitude', 'latitude')], bandwidth = bandwidth, gridsize = c(250, 250))
+fit <- bkde2D(res[,c('LONGITUDE', 'LATITUDE')], bandwidth = bandwidth, gridsize = c(250, 250))
 fit$x <- fit$x1
 fit$y <- fit$x2
 fit$z <- fit$fhat * bandwidth
