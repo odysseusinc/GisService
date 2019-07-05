@@ -129,7 +129,7 @@ define([
 				pointToLayer: (feature, latlng) => {
 					if (feature.properties.size <= 1) {
 						return new L.Marker(latlng, {icon: constants.DefaultIcon}).bindPopup(
-							`Person ID: <a href="/#/profiles/${this.sourceKey}/${feature.properties.subject_id}">${feature.properties.subject_id}</a>`
+							`Person ID: <a href="#/profiles/${this.sourceKey}/${feature.properties.subject_id}">${feature.properties.subject_id}</a>`
 						);
 					} else {
 						return new L.Marker(latlng, {
