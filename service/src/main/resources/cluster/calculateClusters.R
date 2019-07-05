@@ -25,7 +25,7 @@ sql <- SqlRender::render(sql, resultSchema = resultSchema, cdmSchema = cdmSchema
 sql <- SqlRender::translate(sql, connectionDetails$dbms)
 
 con <- DatabaseConnector::connect(connectionDetails)
-res <- DatabaseConnector::lowLevelQuerySql(con, sql)
+res <- DatabaseConnector::querySql(con, sql)
 disconnect(con)
 
 clusterCnt <- 10
@@ -33,23 +33,23 @@ clusterCnt <- 10
 if (nrow(res) == 0) { # Empty geojson when no points found
   sp <- '{"type": "FeatureCollection", "features": []}'
 } else if (clusterCnt < nrow(res)) {
-    clusters <- kmeans(res[,c('longitude', 'latitude')], clusterCnt)
+    clusters <- kmeans(res[,c('LONGITUDE', 'LATITUDE')], clusterCnt)
 
     centersWithSubjectIds <- left_join(
         as.data.frame(clusters$centers),
         res[clusters$cluster %in% seq(1,clusterCnt)[clusters$size==1], ],
-        by = c('longitude' = 'longitude', 'latitude' = 'latitude')
+        by = c('LONGITUDE' = 'LONGITUDE', 'LATITUDE' = 'LATITUDE')
     )
     size <- clusters$size
 
     sp <- SpatialPointsDataFrame(
-        centersWithSubjectIds[,c('longitude', 'latitude')],
-        data.frame(size, subject_id = centersWithSubjectIds[,c('subject_id')])
+        centersWithSubjectIds[,c('LONGITUDE', 'LATITUDE')],
+        data.frame(size, subject_id = centersWithSubjectIds[,c('SUBJECT_ID')])
     )
 } else {
     sp <- SpatialPointsDataFrame(
-        res[,c('longitude', 'latitude')],
-        data.frame(subject_id = res[, c('subject_id')], size = 1)
+        res[,c('LONGITUDE', 'LATITUDE')],
+        data.frame(subject_id = res[, c('SUBJECT_ID')], size = 1)
     )
 }
 
