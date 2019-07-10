@@ -3,6 +3,7 @@ define([
 	'../const.js',
 	'../BaseMapWidget.js',
 	'../Utils.js',
+	'./const.js',
 	'text!./template.html',
 	'text!./styles.css',
 ], (
@@ -10,6 +11,7 @@ define([
 	constants,
 	BaseMapWidget,
 	{ httpQuery },
+	componentConst,
 	componentTemplate,
 	componentStyles,
 ) => {
@@ -21,6 +23,8 @@ define([
 	if (!customElements.get(NAME)) {
 
 		const PERSON_ID_ATTR = 'data-personid';
+		const START_DATE_ATTR = 'data-startdate';
+		const END_DATE_ATTR = 'data-enddate';
 		const MAP_CONTAINER_ID = '#map';
 		const COMPONENT_ID = '#component';
 
@@ -38,7 +42,7 @@ define([
 			}
 
 			static get observedAttributes() {
-				return [super.observedAttributes, PERSON_ID_ATTR];
+				return [super.observedAttributes, PERSON_ID_ATTR, START_DATE_ATTR, END_DATE_ATTR];
 			}
 
 			attributeChangedCallback(name, oldValue, newValue) {
@@ -56,6 +60,14 @@ define([
 
 			get personId() {
 				return this.getAttribute(PERSON_ID_ATTR);
+			}
+
+			get startDate() {
+				return this.getAttribute(START_DATE_ATTR);
+			}
+
+			get endDate() {
+				return this.getAttribute(END_DATE_ATTR);
 			}
 
 			get componentTemplate() {
@@ -87,7 +99,12 @@ define([
 
 				this.clearLayers();
 
-				const locationHistory = await httpQuery(config.gisServiceUrl + `/person/${this.personId}/bounds/${this.sourceKey}`);
+				const locationHistory = await httpQuery(componentConst.Api.loadLocationHistory({
+					personId: this.personId,
+					sourceKey: this.sourceKey,
+					startDate: this.startDate,
+					endDate: this.endDate,
+				}));
 
 				this.map.fitBounds(
 					[
