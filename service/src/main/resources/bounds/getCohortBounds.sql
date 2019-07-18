@@ -1,4 +1,3 @@
--- TODO: need proper handling of latitudes and longitudes in both hemispheres (latitude) and Europe/US (longitude)
 SELECT
   MIN(latitude) min_latitude,
   MAX(latitude) max_latitude,

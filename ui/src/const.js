@@ -18,7 +18,7 @@ define(['../node_modules/leaflet/dist/leaflet.js'], () => {
 		popupAnchor: [0, -40]
 	});
 
-	return {
+  return {
 		DefaultIcon,
 	}
 });
