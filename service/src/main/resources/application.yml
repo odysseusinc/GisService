@@ -46,7 +46,7 @@ eureka:
 
 hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds: 180000
 ribbon:
-  ConnectTimeout: 60000
+  ConnectTimeout: 600000
   ReadTimeout: 60000
 
 kerberos:
