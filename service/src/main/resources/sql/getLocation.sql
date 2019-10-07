@@ -1,4 +1,4 @@
-SELECT longitude, latitude, c.subject_id
+SELECT longitude, latitude, c.subject_id subject_id
 FROM @resultSchema.cohort c
 	JOIN @cdmSchema.location_history lh
 		ON c.subject_id = lh.entity_id AND lh.domain_id = 'PERSON'
