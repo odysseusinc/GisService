@@ -1,5 +1,6 @@
 package org.ohdsi.gisservice.service;
 
+import com.odysseusinc.arachne.commons.types.DBMSType;
 import com.odysseusinc.arachne.execution_engine_common.api.v1.dto.DataSourceUnsecuredDTO;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,8 +48,13 @@ public class PersonService {
                 var location = new PersonLocation();
                 location.setLatitude(rs.getDouble("latitude"));
                 location.setLongitude(rs.getDouble("longitude"));
-                location.setStartDate(rs.getDate("start_date"));
-                location.setEndDate(rs.getDate("end_date"));
+                if (DBMSType.HIVE.equals(source.getType())){
+                    location.setStartDate(rs.getTimestamp("start_date"));
+                    location.setEndDate(rs.getTimestamp("end_date"));
+                } else {
+                    location.setStartDate(rs.getDate("start_date"));
+                    location.setEndDate(rs.getDate("end_date"));
+                }                
                 lh.getLocations().add(location);
             });
             return lh;

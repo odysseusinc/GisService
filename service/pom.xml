@@ -18,7 +18,7 @@
     <properties>
         <java.version>1.8</java.version>
         <feign.version>10.2.3</feign.version>
-        <arachne.version>1.15.0-SNAPSHOT</arachne.version>
+        <arachne.version>1.16.0-SNAPSHOT</arachne.version>
         <mapstruct.version>1.3.0.Final</mapstruct.version>
         <dockerfile.version>1.4.10</dockerfile.version>
     </properties>
@@ -118,7 +118,7 @@
         <dependency>
             <groupId>org.ohdsi.sql</groupId>
             <artifactId>SqlRender</artifactId>
-            <version>1.6.1-SNAPSHOT</version>
+            <version>1.6.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -194,6 +194,22 @@
                     <groupId>org.netezza</groupId>
                     <artifactId>nzjdbc</artifactId>
                     <version>1.0</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hive</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-jdbc</artifactId>
+                    <version>3.1.0</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.eclipse.jetty</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
             </dependencies>
         </profile>
