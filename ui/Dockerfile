@@ -1,4 +1,4 @@
-FROM nginx:1.17.1
+FROM nginx:1.21.1
 MAINTAINER vitaly.koulakov@odysseusinc.com
 
 COPY nginx-cors.conf cors.conf
