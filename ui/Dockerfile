@@ -7,4 +7,4 @@ RUN head -n 9  /etc/nginx/conf.d/default.conf > new-default.conf && cat cors.con
     && rm -f cors.conf
 COPY src /usr/share/nginx/html/src
 COPY node_modules /usr/share/nginx/html/node_modules
-RUN chmod -R 755 /usr/share/nginx/html/src
+RUN chmod -R 755 /usr/share/nginx/html/*
