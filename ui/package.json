@@ -22,6 +22,6 @@
     "@babel/plugin-proposal-class-properties": "^7.4.4",
     "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
     "@babel/preset-env": "^7.4.5",
-    "terser": "^4.0.0"
+    "terser": "^4.8.1"
   }
 }
